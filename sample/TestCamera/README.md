@@ -27,3 +27,6 @@ Press Camera Icon will capture photo and it will display capture image on screen
 ## Open Image 
 It can open a image which is JPGE/ JPEG/ PNG, then show on the screen.
 ![image](https://github.com/jawei1990/UWP_APP/blob/master/sample/TestCamera/Ref%20Img/open.PNG)
+
+# Reference 
+[Microsoft Camera Get Preview Frame](https://github.com/microsoft/Windows-universal-samples/tree/master/archived/CameraGetPreviewFrame)

@@ -269,6 +269,7 @@ namespace TestCamera
                 if (cameraDevice == null)
                 {
                     Debug.WriteLine("No camera device found!");
+                    AlertDialogSingleForBtn("Camera Error", "No camera device found!", "OK");
                     _mediaCaptureLifeLock.Release();
                     return;
                 }
@@ -475,17 +476,11 @@ namespace TestCamera
                 {
                     // Collect the resulting frame
                     var surface = currentFrame.Direct3DSurface;
-
-                    // Show the frame information
-                    //FrameInfoTextBlock.Text = String.Format("{0}x{1} {2}", surface.Description.Width, surface.Description.Height, surface.Description.Format);
                 }
                 else // Fall back to software bitmap
                 {
                     // Collect the resulting frame
                     SoftwareBitmap previewFrame = currentFrame.SoftwareBitmap;
-
-                    // Show the frame information
-                    //FrameInfoTextBlock.Text = String.Format("{0}x{1} {2}", previewFrame.PixelWidth, previewFrame.PixelHeight, previewFrame.BitmapPixelFormat);
                 }
 
                 // Clear the image
@@ -643,6 +638,18 @@ namespace TestCamera
 
         #endregion Helper functions 
 
+        private async void AlertDialogSingleForBtn(String sTitle, String sContent,String btnStr)
+        {
+            ContentDialog Dialog = new ContentDialog
+            {
+                Title = sTitle,
+                Content = sContent,
+                CloseButtonText = btnStr,
+            };
+
+            ContentDialogResult result = await Dialog.ShowAsync();
+        }
+
         private async void BtnOpenOnClick(object sender, RoutedEventArgs e)
         {
             var picker = new Windows.Storage.Pickers.FileOpenPicker();
@@ -673,6 +680,10 @@ namespace TestCamera
                     BtnCaptureSataus = UtilConst.EDIT_STATUS;
                 }
             }
+            else 
+            {
+                AlertDialogSingleForBtn("Open Image Warning", "Could not open the image", "OK");
+            }
         }
 
         private async Task SaveBitmapAsync()
@@ -697,6 +708,8 @@ namespace TestCamera
         {
             if(BtnCaptureSataus == UtilConst.EDIT_STATUS)
                 await SaveBitmapAsync();
+            else
+               AlertDialogSingleForBtn("Save Image Warning", "Could not save photo without capture.","OK");
         }
     }
 }

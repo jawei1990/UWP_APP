@@ -1,0 +1,39 @@
+﻿<Page
+    x:Class="TestBle.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TestBle"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Height="600" Width="800">
+
+    <RelativePanel x:Name="ScreenView" >
+        <Image x:Name="BleLink" Width="20" Height="20" Margin="5,5,0,0"
+           Source="Assets/png_bt_red.png"
+           RelativePanel.AlignTopWithPanel="True" 
+           RelativePanel.AlignLeftWithPanel="True"/>
+
+        <!--Ble connected or not-->
+        <Button x:Name="BtnSearching" Width="200" Height="100"
+                Content="Searching Device"  Click="BntSearcingOnClick"
+                RelativePanel.AlignLeftWithPanel="True" 
+                RelativePanel.AlignVerticalCenterWithPanel="True"/>
+
+         <!--Control Laser on/off-->
+        <Button x:Name="BtnLaserCtr" Width="200" Height="100" Margin="10,0,0,0"
+                Content="Open Laser" Click="BtnLaserCtrOnClick"
+                RelativePanel.RightOf="BtnSearching"
+                RelativePanel.AlignVerticalCenterWithPanel="True"/>
+
+        <Button x:Name="BtnGetDis" Width="200" Height="100" Margin="10,0,0,0"
+                Content="Get Distance" Click="BtnGetDisOnClick"
+                RelativePanel.AlignVerticalCenterWithPanel="True"
+                RelativePanel.RightOf="BtnLaserCtr"/>
+
+    </RelativePanel>
+        
+   
+
+</Page>

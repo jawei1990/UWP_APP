@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -39,12 +41,16 @@ namespace TestBle
             switch (status)
             {
                 case BleConsts.STATE_DISCONNECTED:
+                    isConnected = false;
+                    BtnSearching.Content = "Searching Device";
                     BleLink.Source = new BitmapImage() { UriSource = new Uri("ms-appx:///assets/png_bt_red.png", UriKind.Absolute) };
                     break;
                 case BleConsts.STATE_CONNECTING:
                     BleLink.Source = new BitmapImage() { UriSource = new Uri("ms-appx:///assets/png_bt_white.png", UriKind.Absolute) };
                     break;
                 case BleConsts.STATE_CONNECTED:
+                    BtnSearching.Content = "Disconnect Device";
+                    isConnected = true;
                     BleLink.Source = new BitmapImage() { UriSource = new Uri("ms-appx:///assets/png_bt_blue.png", UriKind.Absolute) };
                     break;
             }
@@ -58,14 +64,36 @@ namespace TestBle
                 Ble.BleDisConnecting();
         }
 
+        public async void ShowDistance(string str)
+        {
+            try
+            {
+                await Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                () => disStr.Text = str);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("ShowDistance exception:" + e.ToString());
+            }
+           
+        }
+
         private async void BtnLaserCtrOnClick(object sender, RoutedEventArgs e)
         {
             if (isConnected)
             {
                 if (!isLaserOn)
+                {
                     await Ble.BleSend("O");
+                    isLaserOn = true;
+                    BtnLaserCtr.Content = "Close Laser";
+                }
                 else
+                {
                     await Ble.BleSend("C");
+                    isLaserOn = false;
+                    BtnLaserCtr.Content = "Open Laser";
+                }
             }
 
             ContentDialog contentDialog = new ContentDialog()

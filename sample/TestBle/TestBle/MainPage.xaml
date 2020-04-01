@@ -15,6 +15,10 @@
            RelativePanel.AlignTopWithPanel="True" 
            RelativePanel.AlignLeftWithPanel="True"/>
 
+        <TextBlock x:Name="disStr" Width="800" Height="100" FontSize="20dp" 
+                 RelativePanel.AlignLeftWithPanel="True"
+                 RelativePanel.Below="BleLink"/>
+
         <!--Ble connected or not-->
         <Button x:Name="BtnSearching" Width="200" Height="100"
                 Content="Searching Device"  Click="BntSearcingOnClick"

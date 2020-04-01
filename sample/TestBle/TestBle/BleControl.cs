@@ -27,7 +27,6 @@ namespace TestBle
         private bool subscribedForNotifications = false;
 
         private BluetoothLEDevice bluetoothLeDevice = null;
-        private GattCharacteristic selectedCharacteristic;
 
         // Only one registered characteristic at a time.
         private GattCharacteristic registeredCharacteristic;
@@ -36,12 +35,11 @@ namespace TestBle
         private readonly String DeviceNameSizensor = "iPin_Sizensor";
         private readonly String DeviceNamePro = "iPinRuler2.0_Pro";
 
-        IReadOnlyList<GattCharacteristic> characteristics = null;
+        GattCharacteristic NotifyUUID, WriteUUID;
 
-        GattDeviceServicesResult deviceServices;
         private string BLE_UUID = "0003cdd0-0000-1000-8000-00805f9b0131";
-        private string BLE_WRITE_UUID = "0003CDD2-0000-1000-8000-00805F9B0131";
-        private string BLE_NOTIFY_UUID = "0003CDD1-0000-1000-8000-00805F9B0131";
+        private string BLE_WRITE_UUID = "0003cdd2-0000-1000-8000-00805f9b0131";
+        private string BLE_NOTIFY_UUID = "0003cdd1-0000-1000-8000-00805f9b0131";
 
         #region Error Codes
         readonly int E_BLUETOOTH_ATT_WRITE_NOT_PERMITTED = unchecked((int)0x80650003);
@@ -69,10 +67,13 @@ namespace TestBle
 			}
 		}
 
-        public void BleDisConnecting()
-        { 
+        public async void BleDisConnecting()
+        {
+            if(await ClearBluetoothLEDeviceAsync())
+                rootPage.ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
         }
 
+        GattDeviceServicesResult DeviceService;
         private async Task ConnectDevice(DeviceInformation device)
         {
             Debug.WriteLine("ConnectDevice");
@@ -107,16 +108,75 @@ namespace TestBle
                 if (result.Status == GattCommunicationStatus.Success)
                 {
                     var services = result.Services;
-                    deviceServices = result;
+                    DeviceService = result.Services;
 
                     Debug.WriteLine(String.Format("Found {0} services", services.Count));
                     rootPage.ChangeBleIcon(BleConsts.STATE_CONNECTED);
 
                     foreach (var service in services)
                     {
-                        Debug.WriteLine(DisplayHelpers.GetServiceName(service));
-                        if (DisplayHelpers.GetServiceUUID(service).Equals(BLE_NOTIFY_UUID))
-                            SubscribeService();
+                        if (DisplayHelpers.GetServiceUUID(service).Equals(BLE_UUID))
+                        {
+                            IReadOnlyList<GattCharacteristic> characteristics = null;
+                            try
+                            {
+                                // Ensure we have access to the device.
+                                var accessStatus = await service.RequestAccessAsync();
+                                if (accessStatus == DeviceAccessStatus.Allowed)
+                                {
+                                    // BT_Code: Get all the child characteristics of a service. Use the cache mode to specify uncached characterstics only 
+                                    // and the new Async functions to get the characteristics of unpaired devices as well. 
+                                    var result_Chara = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached);
+                                    if (result.Status == GattCommunicationStatus.Success)
+                                    {
+                                        characteristics = result_Chara.Characteristics;
+                                    }
+                                    else
+                                    {
+                                        Debug.WriteLine("Error accessing service.");
+
+                                        // On error, act as if there are no characteristics.
+                                        characteristics = new List<GattCharacteristic>();
+                                    }
+                                }
+                                else
+                                {
+                                    // Not granted access
+                                    Debug.WriteLine("Error accessing service.");
+
+                                    // On error, act as if there are no characteristics.
+                                    characteristics = new List<GattCharacteristic>();
+
+                                }
+
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("Restricted service. Can't read characteristics: " + ex.Message);
+                                // On error, act as if there are no characteristics.
+                                characteristics = new List<GattCharacteristic>();
+                            }
+
+                            foreach (GattCharacteristic c in characteristics)
+                            {
+                                if (DisplayHelpers.GetCharacteristicUUID(c).Equals(BLE_NOTIFY_UUID))
+                                {
+                                    NotifyUUID = c;
+                                    Debug.WriteLine("Get Notify UUID");
+                                    SubscribeService();
+                                }
+                                else if (DisplayHelpers.GetCharacteristicUUID(c).Equals(BLE_WRITE_UUID))
+                                {
+                                    WriteUUID = c;
+                                    Debug.WriteLine("Get Write UUID");
+                                }
+                                else
+                                {
+                                    Debug.WriteLine("!!!!" + DisplayHelpers.GetCharacteristicUUID(c));
+                                }
+                               
+                            }
+                        }
                     }
                 }
                 else
@@ -191,10 +251,12 @@ namespace TestBle
                 }
                 else
                 {
-                    selectedCharacteristic.ValueChanged -= Characteristic_ValueChanged;
+                    NotifyUUID.ValueChanged -= Characteristic_ValueChanged;
+                    //WriteUUID.ValueChanged -= Characteristic_ValueChanged;
                     subscribedForNotifications = false;
                 }
             }
+
             bluetoothLeDevice?.Dispose();
             bluetoothLeDevice = null;
             return true;
@@ -204,7 +266,7 @@ namespace TestBle
         {
             if (!subscribedForNotifications)
             {
-                registeredCharacteristic = selectedCharacteristic;
+                registeredCharacteristic = NotifyUUID;
                 registeredCharacteristic.ValueChanged += Characteristic_ValueChanged;
                 subscribedForNotifications = true;
             }
@@ -217,12 +279,12 @@ namespace TestBle
                 // initialize status
                 GattCommunicationStatus status = GattCommunicationStatus.Unreachable;
                 var cccdValue = GattClientCharacteristicConfigurationDescriptorValue.None;
-                if (selectedCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Indicate))
+                if (NotifyUUID.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Indicate))
                 {
                     cccdValue = GattClientCharacteristicConfigurationDescriptorValue.Indicate;
                 }
 
-                else if (selectedCharacteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
+                else if (NotifyUUID.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify))
                 {
                     cccdValue = GattClientCharacteristicConfigurationDescriptorValue.Notify;
                 }
@@ -231,7 +293,7 @@ namespace TestBle
                 {
                     // BT_Code: Must write the CCCD in order for server to send indications.
                     // We receive them in the ValueChanged event handler.
-                    status = await selectedCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(cccdValue);
+                    status = await NotifyUUID.WriteClientCharacteristicConfigurationDescriptorAsync(cccdValue);
 
                     if (status == GattCommunicationStatus.Success)
                     {
@@ -251,12 +313,14 @@ namespace TestBle
             }
         }
 
-        private async void Characteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        private void Characteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
             // BT_Code: An Indicate or Notify reported that the value has changed.
             // Display the new value with a timestamp.
+
             var newValue = FormatValueByPresentation(args.CharacteristicValue, presentationFormat);
-            var message = $"Value at {DateTime.Now:hh:mm:ss.FFF}: {newValue}";
+            Debug.WriteLine(newValue.ToString());
+            rootPage.ShowDistance(newValue.ToString());
         }
 
         private async void DeviceWatcher_Added(DeviceWatcher sender, DeviceInformation deviceInfo)
@@ -275,25 +339,6 @@ namespace TestBle
                         StopBleDeviceWatcher();
                         _ = ConnectDevice(deviceInfo);
                     }
-
-                    // Protect against race condition if the task runs after the app stopped the deviceWatcher.
-                    //if (sender == deviceWatcher)
-                    //{
-                    //    // Make sure device isn't already present in the list.
-                    //    if (FindBluetoothLEDeviceDisplay(deviceInfo.Id) == null)
-                    //    {
-                    //        if (deviceInfo.Name != string.Empty)
-                    //        {
-                    //            // If device has a friendly name display it immediately.
-                    //            KnownDevices.Add(new BluetoothLEDeviceDisplay(deviceInfo));
-                    //        }
-                    //        else
-                    //        {
-                    //            // Add it to a list in case the name gets updated later. 
-                    //            UnknownDevices.Add(deviceInfo);
-                    //        }
-                    //    }
-                    //}
                 }
             });
         }
@@ -415,10 +460,19 @@ namespace TestBle
             return null;
         }
 
+        public async Task BleSend(String str)
+        {
+            if (!String.IsNullOrEmpty(str))
+            {
+                var writeBuffer = CryptographicBuffer.ConvertStringToBinary(str,
+                  BinaryStringEncoding.Utf8);
+
+                var writeSuccessful = await WriteBufferToSelectedCharacteristicAsync(writeBuffer);
+            }
+        }
+
         private string FormatValueByPresentation(IBuffer buffer, GattPresentationFormat format)
         {
-
-            Debug.WriteLine("selectedCharacteristic:::" + selectedCharacteristic.Uuid);
             // BT_Code: For the purpose of this sample, this function converts only UInt32 and
             // UTF-8 buffers to readable text. It can be extended to support other formats if your app needs them.
             byte[] data;
@@ -448,60 +502,21 @@ namespace TestBle
             }
             else if (data != null)
             {
-               if (selectedCharacteristic.Uuid.Equals(GattCharacteristicUuids.BatteryLevel))
+                try
                 {
-                    try
-                    {
-                        // battery level is encoded as a percentage value in the first byte according to
-                        // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.characteristic.battery_level.xml
-                        return "Battery Level: " + data[0].ToString() + "%";
-                    }
-                    catch (ArgumentException)
-                    {
-                        return "Battery Level: (unable to parse)";
-                    }
+                    //BitConverter.ToInt32(data, 0).ToString();
+                    String str = Encoding.UTF8.GetString(data);
+                    return str;
                 }
-                // This is our custom calc service Result UUID. Format it like an Int
-                else if (selectedCharacteristic.Uuid.Equals(BleConsts.ResultCharacteristicUuid))
+                catch (Exception e)
                 {
-                    return BitConverter.ToInt32(data, 0).ToString();
-                }
-                // No guarantees on if a characteristic is registered for notifications.
-                else if (registeredCharacteristic != null)
-                {
-                    // This is our custom calc service Result UUID. Format it like an Int
-                    if (registeredCharacteristic.Uuid.Equals(BleConsts.ResultCharacteristicUuid))
-                    {
-                        return BitConverter.ToInt32(data, 0).ToString();
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        return "Unknown format: " + Encoding.UTF8.GetString(data);
-                    }
-                    catch (ArgumentException)
-                    {
-                        return "Unknown format";
-                    }
+                    Debug.WriteLine("Notify Exception" + e.ToString());
+                    return "Unknown format";
                 }
             }
             else
             {
                 return "Empty data received";
-            }
-            return "Unknown format";
-        }
-
-        public async Task BleSend(String str)
-        {
-            if (!String.IsNullOrEmpty(str))
-            {
-                var writeBuffer = CryptographicBuffer.ConvertStringToBinary(str,
-                  BinaryStringEncoding.Utf8);
-
-                var writeSuccessful = await WriteBufferToSelectedCharacteristicAsync(writeBuffer);
             }
         }
 
@@ -510,7 +525,7 @@ namespace TestBle
             try
             {
                 // BT_Code: Writes the value from the buffer to the characteristic.
-                var result = await selectedCharacteristic.WriteValueWithResultAsync(buffer);
+                var result = await WriteUUID.WriteValueWithResultAsync(buffer);
 
                 if (result.Status == GattCommunicationStatus.Success)
                 {

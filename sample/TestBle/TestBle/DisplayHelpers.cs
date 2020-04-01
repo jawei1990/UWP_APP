@@ -31,6 +31,11 @@ namespace TestBle
             return service.Uuid.ToString();
         }
 
+        public static string GetCharacteristicUUID(GattCharacteristic characteristic)
+        {
+            return characteristic.Uuid.ToString();
+        }
+
         public static string GetCharacteristicName(GattCharacteristic characteristic)
         {
             if (IsSigDefinedUuid(characteristic.Uuid))

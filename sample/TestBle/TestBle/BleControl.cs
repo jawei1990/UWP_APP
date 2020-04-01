@@ -73,7 +73,6 @@ namespace TestBle
                 rootPage.ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
         }
 
-        GattDeviceServicesResult DeviceService;
         private async Task ConnectDevice(DeviceInformation device)
         {
             Debug.WriteLine("ConnectDevice");
@@ -108,7 +107,6 @@ namespace TestBle
                 if (result.Status == GattCommunicationStatus.Success)
                 {
                     var services = result.Services;
-                    DeviceService = result.Services;
 
                     Debug.WriteLine(String.Format("Found {0} services", services.Count));
                     rootPage.ChangeBleIcon(BleConsts.STATE_CONNECTED);
@@ -254,6 +252,7 @@ namespace TestBle
                     NotifyUUID.ValueChanged -= Characteristic_ValueChanged;
                     //WriteUUID.ValueChanged -= Characteristic_ValueChanged;
                     subscribedForNotifications = false;
+
                 }
             }
 

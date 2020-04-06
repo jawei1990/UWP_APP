@@ -6,6 +6,7 @@ TestCamera : Camera sample which can capture photo, opne image and show on scree
 <table>
  <tr>
   <td><a href="sample/TestCamera">Test Camera Feature</a></td>
+  <td><a href="sample/TestBle">Test Ble Feature</a></td>
  </tr>
 </table>
 

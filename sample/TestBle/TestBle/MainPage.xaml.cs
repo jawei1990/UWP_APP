@@ -80,7 +80,7 @@ namespace TestBle
 
         private async void BtnLaserCtrOnClick(object sender, RoutedEventArgs e)
         {
-            if (isConnected)
+            if (Ble.getBleSatus())
             {
                 if (!isLaserOn)
                 {
@@ -95,29 +95,38 @@ namespace TestBle
                     BtnLaserCtr.Content = "Open Laser";
                 }
             }
-
-            ContentDialog contentDialog = new ContentDialog()
+            else
             {
-                Title = "BLE Not Connected",
-                Content = "BLE is not connected,please re-connected.",
-                CloseButtonText = "Got it."
-            };
+                ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
+                ContentDialog contentDialog = new ContentDialog()
+                {
+                    Title = "BLE Not Connected",
+                    Content = "BLE is not connected,please re-connected.",
+                    CloseButtonText = "Got it."
+                };
 
+                ContentDialogResult result = await contentDialog.ShowAsync();
+            }
         }
 
         private async void BtnGetDisOnClick(object sender, RoutedEventArgs e)
         {
-            if (isConnected)
+            if (Ble.getBleSatus())
             {
                 await Ble.BleSend("D");
             }
-
-            ContentDialog contentDialog = new ContentDialog()
+            else
             {
-                Title = "BLE Not Connected",
-                Content = "BLE is not connected,please re-connected.",
-                CloseButtonText = "Got it."
-            };
+                ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
+                ContentDialog contentDialog = new ContentDialog()
+                {
+                    Title = "BLE Not Connected",
+                    Content = "BLE is not connected,please re-connected.",
+                    CloseButtonText = "Got it."
+                };
+
+                ContentDialogResult result = await contentDialog.ShowAsync();
+            }
         }
     }
 }

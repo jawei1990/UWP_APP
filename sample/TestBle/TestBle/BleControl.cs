@@ -25,11 +25,11 @@ namespace TestBle
 
 		private DeviceWatcher deviceWatcher;
         private bool subscribedForNotifications = false;
-
+        private GattDeviceService deviceService;
         private BluetoothLEDevice bluetoothLeDevice = null;
 
         // Only one registered characteristic at a time.
-        private GattCharacteristic registeredCharacteristic;
+        //private GattCharacteristic registeredCharacteristic;
         private GattPresentationFormat presentationFormat;
 
         private readonly String DeviceNameSizensor = "iPin_Sizensor";
@@ -69,7 +69,7 @@ namespace TestBle
 
         public async void BleDisConnecting()
         {
-            if(await ClearBluetoothLEDeviceAsync())
+            if(await DisconnectedBluetoothLEDeviceAsync())
                 rootPage.ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
         }
 
@@ -122,6 +122,7 @@ namespace TestBle
                                 var accessStatus = await service.RequestAccessAsync();
                                 if (accessStatus == DeviceAccessStatus.Allowed)
                                 {
+                                    deviceService = service;
                                     // BT_Code: Get all the child characteristics of a service. Use the cache mode to specify uncached characterstics only 
                                     // and the new Async functions to get the characteristics of unpaired devices as well. 
                                     var result_Chara = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached);
@@ -237,14 +238,16 @@ namespace TestBle
             }
         }
 
-        private async Task<bool> ClearBluetoothLEDeviceAsync()
+        private async Task<bool> DisconnectedBluetoothLEDeviceAsync()
         {
+            Debug.WriteLine("ClearBluetoothLEDeviceAsync");
             if (subscribedForNotifications)
             {
                 // Need to clear the CCCD from the remote device so we stop receiving notifications
-                var result = await registeredCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                var result = await NotifyUUID.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
                 if (result != GattCommunicationStatus.Success)
                 {
+                    Debug.WriteLine("result xxx");
                     return false;
                 }
                 else
@@ -252,21 +255,51 @@ namespace TestBle
                     NotifyUUID.ValueChanged -= Characteristic_ValueChanged;
                     //WriteUUID.ValueChanged -= Characteristic_ValueChanged;
                     subscribedForNotifications = false;
+                    Debug.WriteLine("result oooo");
 
                 }
             }
 
+            deviceService?.Dispose();
+            bluetoothLeDevice?.Dispose();
+            Debug.WriteLine("Disconnect!!!");
+            bluetoothLeDevice = null;
+            NotifyUUID = null;
+            WriteUUID = null;
+            return true;
+        }
+
+        private async Task<bool> ClearBluetoothLEDeviceAsync()
+        {
+            Debug.WriteLine("ClearBluetoothLEDeviceAsync");
+            if (subscribedForNotifications)
+            {
+                // Need to clear the CCCD from the remote device so we stop receiving notifications
+                var result = await NotifyUUID.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.None);
+                if (result != GattCommunicationStatus.Success)
+                {
+                    return false;
+                }
+                else
+                {
+                    NotifyUUID.ValueChanged -= Characteristic_ValueChanged;   
+                    subscribedForNotifications = false;
+                }
+            }
+
+            NotifyUUID = null;
+            WriteUUID = null;
+            deviceService?.Dispose();
             bluetoothLeDevice?.Dispose();
             bluetoothLeDevice = null;
-            return true;
+            return true;   
         }
 
         private void AddValueChangedHandler()
         {
             if (!subscribedForNotifications)
             {
-                registeredCharacteristic = NotifyUUID;
-                registeredCharacteristic.ValueChanged += Characteristic_ValueChanged;
+                NotifyUUID.ValueChanged += Characteristic_ValueChanged;
                 subscribedForNotifications = true;
             }
         }
@@ -309,6 +342,42 @@ namespace TestBle
                     // This usually happens when a device reports that it support indicate, but it actually doesn't.
                     Debug.WriteLine(ex.Message);
                 }
+            }
+            else 
+            {
+                try
+                {
+                    // BT_Code: Must write the CCCD in order for server to send notifications.
+                    // We receive them in the ValueChanged event handler.
+                    // Note that this sample configures either Indicate or Notify, but not both.
+                    var result = await NotifyUUID.WriteClientCharacteristicConfigurationDescriptorAsync(
+                                GattClientCharacteristicConfigurationDescriptorValue.None);
+                    if (result == GattCommunicationStatus.Success)
+                    {
+                        subscribedForNotifications = false;
+                        RemoveValueChangedHandler();
+                        Debug.WriteLine("Successfully un-registered for notifications");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Error un-registering for notifications: {result}");
+                    }
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    // This usually happens when a device reports that it support notify, but it actually doesn't.
+                   Debug.WriteLine("UnauthorizedAccessException:" + ex.Message);
+                }
+            }
+        }
+
+        private void RemoveValueChangedHandler()
+        { 
+            if (subscribedForNotifications)
+            {
+                NotifyUUID.ValueChanged -= Characteristic_ValueChanged;
+                NotifyUUID = null;
+                subscribedForNotifications = false;
             }
         }
 
@@ -461,17 +530,40 @@ namespace TestBle
 
         public async Task BleSend(String str)
         {
-            if (!String.IsNullOrEmpty(str))
+            if (bluetoothLeDevice.ConnectionStatus != BleConsts.STATE_DISCONNECTED)
             {
-                var writeBuffer = CryptographicBuffer.ConvertStringToBinary(str,
-                  BinaryStringEncoding.Utf8);
+                if (!String.IsNullOrEmpty(str))
+                {
+                    var writeBuffer = CryptographicBuffer.ConvertStringToBinary(str,
+                      BinaryStringEncoding.Utf8);
 
-                var writeSuccessful = await WriteBufferToSelectedCharacteristicAsync(writeBuffer);
+                    var writeSuccessful = await WriteBufferToSelectedCharacteristicAsync(writeBuffer);
+                }
+            }
+            else 
+            {
+                rootPage.ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
+                await ClearBluetoothLEDeviceAsync();
             }
         }
 
+        public bool getBleSatus()
+        {
+            if (bluetoothLeDevice.ConnectionStatus == BleConsts.STATE_DISCONNECTED)
+                return false;
+            else
+                return true;
+        }
+
+        /* Read Data */
         private string FormatValueByPresentation(IBuffer buffer, GattPresentationFormat format)
         {
+            if (bluetoothLeDevice.ConnectionStatus == BleConsts.STATE_DISCONNECTED)
+            {
+                rootPage.ChangeBleIcon(BleConsts.STATE_DISCONNECTED);
+                return "Deivce Disconnected";
+            }
+
             // BT_Code: For the purpose of this sample, this function converts only UInt32 and
             // UTF-8 buffers to readable text. It can be extended to support other formats if your app needs them.
             byte[] data;

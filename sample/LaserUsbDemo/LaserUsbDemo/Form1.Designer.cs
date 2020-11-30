@@ -36,6 +36,12 @@ namespace LaserUsbDemo
             this.label1 = new System.Windows.Forms.Label();
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.BtnRefresh = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
+            this.BtnGetDis = new System.Windows.Forms.Button();
+            this.BtnShots = new System.Windows.Forms.Button();
+            this.BtnStop = new System.Windows.Forms.Button();
+            this.label3 = new System.Windows.Forms.Label();
+            this.tv_dis = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // serialPort1
@@ -84,17 +90,87 @@ namespace LaserUsbDemo
             this.BtnRefresh.UseVisualStyleBackColor = true;
             this.BtnRefresh.Click += new System.EventHandler(this.BtnRefresh_Click);
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label2.Location = new System.Drawing.Point(15, 112);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(728, 18);
+            this.label2.TabIndex = 4;
+            this.label2.Text = "---------------------------------------------------------------------------------" +
+    "---------";
+            // 
+            // BtnGetDis
+            // 
+            this.BtnGetDis.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.BtnGetDis.Location = new System.Drawing.Point(18, 149);
+            this.BtnGetDis.Name = "BtnGetDis";
+            this.BtnGetDis.Size = new System.Drawing.Size(152, 51);
+            this.BtnGetDis.TabIndex = 5;
+            this.BtnGetDis.Text = "Get One Distance";
+            this.BtnGetDis.UseVisualStyleBackColor = true;
+            this.BtnGetDis.Click += new System.EventHandler(this.BtnGetDis_Click);
+            // 
+            // BtnShots
+            // 
+            this.BtnShots.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.BtnShots.Location = new System.Drawing.Point(194, 149);
+            this.BtnShots.Name = "BtnShots";
+            this.BtnShots.Size = new System.Drawing.Size(146, 51);
+            this.BtnShots.TabIndex = 6;
+            this.BtnShots.Text = "Continus Get Distance";
+            this.BtnShots.UseVisualStyleBackColor = true;
+            this.BtnShots.Click += new System.EventHandler(this.BtnShots_Click);
+            // 
+            // BtnStop
+            // 
+            this.BtnStop.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.BtnStop.Location = new System.Drawing.Point(366, 149);
+            this.BtnStop.Name = "BtnStop";
+            this.BtnStop.Size = new System.Drawing.Size(146, 51);
+            this.BtnStop.TabIndex = 7;
+            this.BtnStop.Text = "Stop";
+            this.BtnStop.UseVisualStyleBackColor = true;
+            this.BtnStop.Click += new System.EventHandler(this.BtnStop_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Font = new System.Drawing.Font("Consolas", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label3.Location = new System.Drawing.Point(18, 243);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(150, 33);
+            this.label3.TabIndex = 8;
+            this.label3.Text = "Distance:";
+            // 
+            // tv_dis
+            // 
+            this.tv_dis.AutoSize = true;
+            this.tv_dis.Font = new System.Drawing.Font("Consolas", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tv_dis.Location = new System.Drawing.Point(188, 243);
+            this.tv_dis.Name = "tv_dis";
+            this.tv_dis.Size = new System.Drawing.Size(0, 33);
+            this.tv_dis.TabIndex = 9;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.tv_dis);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.BtnStop);
+            this.Controls.Add(this.BtnShots);
+            this.Controls.Add(this.BtnGetDis);
+            this.Controls.Add(this.label2);
             this.Controls.Add(this.BtnRefresh);
             this.Controls.Add(this.comboBox1);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.BtnDeviceStatus);
             this.Name = "Form1";
             this.Text = "Laser Usb Demo";
+            this.Load += new System.EventHandler(this.BtnStop_Click);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -107,6 +183,12 @@ namespace LaserUsbDemo
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.Button BtnRefresh;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button BtnGetDis;
+        private System.Windows.Forms.Button BtnShots;
+        private System.Windows.Forms.Button BtnStop;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label tv_dis;
     }
 }
 

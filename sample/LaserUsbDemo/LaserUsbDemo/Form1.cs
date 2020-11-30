@@ -30,6 +30,9 @@ namespace LaserUsbDemo
             InitializeComponent();
             comboBox1.Items.AddRange(comboBoxData);
             getComPort();
+
+//            string ttt = "DIST;19987;AMP;0022;TEMP;1325;VOLT;108";
+//            string test = EncodeData(ttt);
         }
 
         private void getComPort()
@@ -124,6 +127,12 @@ namespace LaserUsbDemo
         {
             try
             {
+                serialPort1.BaudRate = 256000;
+                serialPort1.Parity = Parity.None;
+                serialPort1.StopBits = StopBits.One;
+                serialPort1.DataBits = 8;
+                serialPort1.Handshake = Handshake.None;
+                serialPort1.RtsEnable = false;
                 serialPort1.PortName = portName;
                 serialPort1.Open();
                 BtnDeviceStatus.Text = "Disconnect";
@@ -151,13 +160,75 @@ namespace LaserUsbDemo
 
         private void BtnRefresh_Click(object sender, EventArgs e)
         {
-            if(!isDeviceConnected)
+            if (!isDeviceConnected)
                 getComPort();
+            else 
+            {
+                comboBox1.SelectedIndex = Int16.Parse(device_port_num) - 1;
+            }
         }
 
-        private void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
+        string dis_ddd;
+        private async void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
         {
+            SerialPort sp = (SerialPort)sender;
+            string indata = sp.ReadExisting();
 
+            switch (btnStatus)
+            {
+                case 1:
+                    {
+                        String dis = EncodeData(indata);
+                        dis_ddd = dis;
+                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
+                        btnStatus = 3;
+                    }
+                    break;
+                case 2:
+                    {
+                        String dis = EncodeData(indata);
+                        dis_ddd = dis;
+                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
+                    }
+                    break;
+            }
+        }
+
+        private delegate void InvokeDelegate();
+
+        private void HandleSelection()
+        {
+            tv_dis.Text = string.Format(dis_ddd);
+        }
+
+        // return distance;
+        String EncodeData(string indata)
+        {
+            String ret = "";
+            String pattern = ";";
+            String[] elements = Regex.Split(indata, pattern);
+
+            ret = elements[1].ToString();
+
+            return ret;
+        }
+
+        int btnStatus = 0; // 0: None, 1: get one data, 2: more data, 3: stop
+      //  byte[] getDis = new byte[] {0xAA,0x80,0x00,0x22,0xA2};
+        private void BtnGetDis_Click(object sender, EventArgs e)
+        {
+            //      serialPort1.Write(getDis, 0, 5);
+            btnStatus = 1;
+        }
+
+        private void BtnShots_Click(object sender, EventArgs e)
+        {
+            btnStatus = 2;
+        }
+
+        private void BtnStop_Click(object sender, EventArgs e)
+        {
+            btnStatus = 3;
         }
     }
 }

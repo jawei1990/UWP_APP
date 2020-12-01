@@ -31,8 +31,8 @@ namespace LaserUsbDemo
             comboBox1.Items.AddRange(comboBoxData);
             getComPort();
 
-//            string ttt = "DIST;19987;AMP;0022;TEMP;1325;VOLT;108";
-//            string test = EncodeData(ttt);
+            //string ttt = "DIST;19987;AMP;0022;TEMP;1325;VOLT;108";
+            //string test = DecodeData(ttt);
         }
 
         private void getComPort()
@@ -132,7 +132,7 @@ namespace LaserUsbDemo
                 serialPort1.StopBits = StopBits.One;
                 serialPort1.DataBits = 8;
                 serialPort1.Handshake = Handshake.None;
-                serialPort1.RtsEnable = false;
+                serialPort1.RtsEnable = true;
                 serialPort1.PortName = portName;
                 serialPort1.Open();
                 BtnDeviceStatus.Text = "Disconnect";
@@ -168,29 +168,33 @@ namespace LaserUsbDemo
             }
         }
 
+        
         string dis_ddd;
         private async void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
         {
             SerialPort sp = (SerialPort)sender;
             string indata = sp.ReadExisting();
-
-            switch (btnStatus)
+            //Console.WriteLine("Data Received:" + indata);
+            if (indata.Contains("DIST"))
             {
-                case 1:
-                    {
-                        String dis = EncodeData(indata);
-                        dis_ddd = dis;
-                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
-                        btnStatus = 3;
-                    }
-                    break;
-                case 2:
-                    {
-                        String dis = EncodeData(indata);
-                        dis_ddd = dis;
-                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
-                    }
-                    break;
+                switch (btnStatus)
+                {
+                    case 1:
+                        {
+                            String dis = DecodeData(indata);
+                            dis_ddd = dis;
+                            this.BeginInvoke(new InvokeDelegate(HandleSelection));
+                            btnStatus = 3;
+                        }
+                        break;
+                    case 2:
+                        {
+                            String dis = DecodeData(indata);
+                            dis_ddd = dis;
+                            this.BeginInvoke(new InvokeDelegate(HandleSelection));
+                        }
+                        break;
+                }
             }
         }
 
@@ -202,14 +206,16 @@ namespace LaserUsbDemo
         }
 
         // return distance;
-        String EncodeData(string indata)
+        String DecodeData(string indata)
         {
             String ret = "";
+
             String pattern = ";";
             String[] elements = Regex.Split(indata, pattern);
 
-            ret = elements[1].ToString();
-
+            Int32 data_int = Int32.Parse(elements[1]);
+            ret = data_int.ToString();
+           
             return ret;
         }
 

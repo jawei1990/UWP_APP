@@ -42,6 +42,7 @@ namespace LaserUsbDemo
             this.BtnStop = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
             this.tv_dis = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // serialPort1
@@ -153,11 +154,22 @@ namespace LaserUsbDemo
             this.tv_dis.Size = new System.Drawing.Size(0, 33);
             this.tv_dis.TabIndex = 9;
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Consolas", 16.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label4.Location = new System.Drawing.Point(318, 243);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(45, 33);
+            this.label4.TabIndex = 10;
+            this.label4.Text = "mm";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.tv_dis);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.BtnStop);
@@ -189,6 +201,7 @@ namespace LaserUsbDemo
         private System.Windows.Forms.Button BtnStop;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label tv_dis;
+        private System.Windows.Forms.Label label4;
     }
 }
 

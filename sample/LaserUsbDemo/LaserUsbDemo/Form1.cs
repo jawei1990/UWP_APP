@@ -31,6 +31,11 @@ namespace LaserUsbDemo
             comboBox1.Items.AddRange(comboBoxData);
             getComPort();
 
+            tv_amp.Visible = false;
+            tv_amp_t.Visible = false;
+            tv_temp.Visible = false;
+            tv_temp_t.Visible = false;
+
             //string ttt = "DIST;19987;AMP;0022;TEMP;1325;VOLT;108";
             //string test = DecodeData(ttt);
         }
@@ -168,73 +173,149 @@ namespace LaserUsbDemo
             }
         }
 
-        
-        string dis_ddd;
-        private async void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
+        private string hexToString(byte[] data, int len)
         {
-            SerialPort sp = (SerialPort)sender;
-            string indata = sp.ReadExisting();
-            //Console.WriteLine("Data Received:" + indata);
-            if (indata.Contains("DIST"))
+
+            string str = BitConverter.ToString(data);
+
+            Console.WriteLine(str);
+            String[] tempAry = str.Split('-');
+            str = "";
+            for (int i = 0; i < len; i++)
             {
-                switch (btnStatus)
-                {
-                    case 1:
-                        {
-                            String dis = DecodeData(indata);
-                            dis_ddd = dis;
-                            this.BeginInvoke(new InvokeDelegate(HandleSelection));
-                            btnStatus = 3;
-                        }
-                        break;
-                    case 2:
-                        {
-                            String dis = DecodeData(indata);
-                            dis_ddd = dis;
-                            this.BeginInvoke(new InvokeDelegate(HandleSelection));
-                        }
-                        break;
-                }
+                str += tempAry[i];
             }
+
+            return str;
+        }
+
+        private void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
+        {
+
+            SerialPort sp = (SerialPort)sender;
+            byte[] rx_data = new byte[10];
+            int len = sp.Read(rx_data,0,10);
+
+            string data = hexToString(rx_data,len);
+            Console.WriteLine(data);
+
+            if (data.Contains("CD000005"))
+            {
+                string str_dis = rx_data[4].ToString() + rx_data[5].ToString() +
+                    rx_data[6].ToString() + rx_data[7].ToString();
+                text_dis = str_dis.ToString();
+                this.BeginInvoke(new InvokeDelegate(HandleSelection));
+            }
+
+            //Console.WriteLine("Data Received:" + indata);
+            /*
+                        SerialPort sp = (SerialPort)sender;
+                        string indata = sp.ReadExisting();
+                        //Console.WriteLine("Data Received:" + indata);
+
+                        if (indata.Contains("DIST"))
+                        {
+                            switch (btnStatus)
+                            {
+                                case 1:
+                                    {
+                                        DecodeData(indata);
+                                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
+                                        btnStatus = 3;
+                                    }
+                                    break;
+                                case 2:
+                                    {
+                                        DecodeData(indata);
+                                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
+                                    }
+                                    break;
+                            }
+                        }
+            */
         }
 
         private delegate void InvokeDelegate();
 
         private void HandleSelection()
         {
-            tv_dis.Text = string.Format(dis_ddd);
+            tv_dis.Text = string.Format(text_dis);
+ //           tv_amp.Text = string.Format(text_amp);
+ //           tv_temp.Text = string.Format(text_temp);
         }
 
-        // return distance;
-        String DecodeData(string indata)
+        string text_dis;
+        string text_amp;
+        string text_temp;
+        void DecodeData(string indata)
         {
-            String ret = "";
-
             String pattern = ";";
             String[] elements = Regex.Split(indata, pattern);
 
             Int32 data_int = Int32.Parse(elements[1]);
-            ret = data_int.ToString();
-           
-            return ret;
+            text_dis = data_int.ToString();
+
+            data_int = Int32.Parse(elements[3]);
+            text_amp = data_int.ToString();
+
+            data_int = Int32.Parse(elements[5]);
+            text_temp = data_int.ToString();
         }
 
         int btnStatus = 0; // 0: None, 1: get one data, 2: more data, 3: stop
-      //  byte[] getDis = new byte[] {0xAA,0x80,0x00,0x22,0xA2};
+        byte[] getDis = new byte[] {0xCD,0x01,0x00,0x05,0x06};
         private void BtnGetDis_Click(object sender, EventArgs e)
         {
-            //      serialPort1.Write(getDis, 0, 5);
+            serialPort1.Write(getDis, 0, 5);
             btnStatus = 1;
         }
 
-        private void BtnShots_Click(object sender, EventArgs e)
+        byte[] off = new byte[] { 0xCD, 0x01, 0x00, 0x04, 0x05 };
+        private void BtnOff_Click(object sender, EventArgs e)
         {
             btnStatus = 2;
+            serialPort1.Write(off, 0, 5);
         }
 
-        private void BtnStop_Click(object sender, EventArgs e)
+        byte[] on = new byte[] { 0xCD, 0x01, 0x00, 0x03, 0x04 };
+        private void BtnOn_Click(object sender, EventArgs e)
         {
             btnStatus = 3;
+            serialPort1.Write(on, 0, 5);
+        }
+
+
+        int DebugCnt = 0;
+        bool isDebugMode = false;
+        private void FromClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                DebugCnt++;
+                if (DebugCnt == 3 && !isDebugMode)
+                {
+                    tv_amp.Visible = true;
+                    tv_amp_t.Visible = true;
+                    tv_temp.Visible = true;
+                    tv_temp_t.Visible = true;
+                    cb_back.Visible = true;
+                    isDebugMode = true;
+                    DebugCnt = 0;
+                }
+            }
+        }
+
+        private void cb_backMode(object sender, EventArgs e)
+        {
+            tv_amp.Visible = false;
+            tv_amp_t.Visible = false;
+            tv_temp.Visible = false;
+            tv_temp_t.Visible = false;
+            cb_back.Checked = false;
+
+            isDebugMode = false;
+            DebugCnt = 0;
+            cb_back.Visible = false;
         }
     }
 }

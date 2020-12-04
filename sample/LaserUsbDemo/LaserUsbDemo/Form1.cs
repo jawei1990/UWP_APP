@@ -159,7 +159,15 @@ namespace LaserUsbDemo
             }
             else
             {
-                OpenSerialPort(device_port);
+                if (string.IsNullOrEmpty(device_port))
+                {
+                    Console.WriteLine("device not found:" + comboBox1.Text.ToString());
+                    OpenSerialPort(comboBox1.Text);
+                }
+                else 
+                {
+                    OpenSerialPort(device_port);
+                }                
             }  
         }
 

@@ -200,7 +200,7 @@ namespace LaserUsbDemo
         private void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
         {
 
-            SerialPort sp = (SerialPort)sender;
+     /*       SerialPort sp = (SerialPort)sender;
             byte[] rx_data = new byte[10];
             int len = sp.Read(rx_data,0,10);
 
@@ -213,13 +213,13 @@ namespace LaserUsbDemo
                     rx_data[6].ToString() + rx_data[7].ToString();
                 text_dis = str_dis.ToString();
                 this.BeginInvoke(new InvokeDelegate(HandleSelection));
-            }
+            }*/
 
             //Console.WriteLine("Data Received:" + indata);
-            /*
+            
                         SerialPort sp = (SerialPort)sender;
                         string indata = sp.ReadExisting();
-                        //Console.WriteLine("Data Received:" + indata);
+                        Console.WriteLine("Data Received:" + indata);
 
                         if (indata.Contains("DIST"))
                         {
@@ -240,7 +240,7 @@ namespace LaserUsbDemo
                                     break;
                             }
                         }
-            */
+            
         }
 
         private delegate void InvokeDelegate();
@@ -257,39 +257,51 @@ namespace LaserUsbDemo
         string text_temp;
         void DecodeData(string indata)
         {
-            String pattern = ";";
+            String pattern = ":";
             String[] elements = Regex.Split(indata, pattern);
 
-            Int32 data_int = Int32.Parse(elements[1]);
+            String str_data = elements[1];
+
+            String pattern_line = "\n";
+            String[] elements_line = Regex.Split(str_data, pattern_line);
+
+            Int32 data_int = Int32.Parse(elements_line[0]);
             text_dis = data_int.ToString();
 
-            data_int = Int32.Parse(elements[3]);
-            text_amp = data_int.ToString();
+            /*  Int32 data_int = Int32.Parse(elements[1]);
+              text_dis = data_int.ToString();
 
-            data_int = Int32.Parse(elements[5]);
-            text_temp = data_int.ToString();
+              data_int = Int32.Parse(elements[3]);
+              text_amp = data_int.ToString();
+
+              data_int = Int32.Parse(elements[5]);
+              text_temp = data_int.ToString();*/
         }
 
         int btnStatus = 0; // 0: None, 1: get one data, 2: more data, 3: stop
-        byte[] getDis = new byte[] {0xCD,0x01,0x00,0x05,0x06};
+                           //  byte[] getDis = new byte[] {0xCD,0x01,0x00,0x05,0x06};
+        byte[] getDis = new byte[] { 0x53};
         private void BtnGetDis_Click(object sender, EventArgs e)
         {
-            serialPort1.Write(getDis, 0, 5);
+            // serialPort1.Write(getDis, 0, 5);
+            serialPort1.Write(getDis, 0, 1);
             btnStatus = 1;
         }
 
-        byte[] off = new byte[] { 0xCD, 0x01, 0x00, 0x04, 0x05 };
+        //       byte[] off = new byte[] { 0xCD, 0x01, 0x00, 0x04, 0x05 };
+        byte[] off = new byte[] { 0x44 };
         private void BtnOff_Click(object sender, EventArgs e)
         {
             btnStatus = 2;
-            serialPort1.Write(off, 0, 5);
+            serialPort1.Write(off, 0, 1);
         }
 
-        byte[] on = new byte[] { 0xCD, 0x01, 0x00, 0x03, 0x04 };
+    //    byte[] on = new byte[] { 0xCD, 0x01, 0x00, 0x03, 0x04 };
+    byte[] on = new byte[] { 0x45 };
         private void BtnOn_Click(object sender, EventArgs e)
         {
             btnStatus = 3;
-            serialPort1.Write(on, 0, 5);
+            serialPort1.Write(on, 0, 1);
         }
 
 

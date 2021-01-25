@@ -82,6 +82,7 @@ namespace LaserUsbDemo
             this.serialPort10 = new System.IO.Ports.SerialPort(this.components);
             this.tv_status = new System.Windows.Forms.Label();
             this.btnPath = new System.Windows.Forms.Button();
+            this.tv_process = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // serialPort1
@@ -537,11 +538,20 @@ namespace LaserUsbDemo
             this.btnPath.UseVisualStyleBackColor = true;
             this.btnPath.Click += new System.EventHandler(this.btnPath_Click);
             // 
+            // tv_process
+            // 
+            this.tv_process.AutoSize = true;
+            this.tv_process.Location = new System.Drawing.Point(547, 334);
+            this.tv_process.Name = "tv_process";
+            this.tv_process.Size = new System.Drawing.Size(0, 15);
+            this.tv_process.TabIndex = 52;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(799, 522);
+            this.ClientSize = new System.Drawing.Size(813, 522);
+            this.Controls.Add(this.tv_process);
             this.Controls.Add(this.btnPath);
             this.Controls.Add(this.tv_status);
             this.Controls.Add(this.label17);
@@ -646,6 +656,7 @@ namespace LaserUsbDemo
         private System.IO.Ports.SerialPort serialPort10;
         private System.Windows.Forms.Label tv_status;
         private System.Windows.Forms.Button btnPath;
+        private System.Windows.Forms.Label tv_process;
     }
 }
 

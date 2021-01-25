@@ -47,6 +47,7 @@ namespace LaserUsbDemo
             BtnCal.Enabled = false;
 
             tv_status.Text = "";
+            tv_process.Text = "";
         }
 
         private void getComPort()
@@ -66,14 +67,12 @@ namespace LaserUsbDemo
 
                 if (match_name.Success)
                 {
-                    char[] data = SerialPort[i].description.ToCharArray();
+                    string[] words = SerialPort[i].description.Split(new string[] {"COM","(",")"}, StringSplitOptions.RemoveEmptyEntries);
 
-                    for (int j = match_port.Index + 3; j < data.Length; j++)
+                    for (int j = 1; j < words.Length; j++)
                     {
-                        if (!string.Equals(data[j].ToString(), ")"))
-                        {
-                            setTextBoxComPort(data[j].ToString());
-                        }
+                        Console.WriteLine("--->" + words[j]);
+                        setTextBoxComPort(words[j]);
                     }
                 }
             }
@@ -196,6 +195,7 @@ namespace LaserUsbDemo
 
         private void HandleSaveMsg()
         {
+            tv_process.Text = str_msg;
             String str_temp = "[" + tmpStatus + "-" + cnt + "]";
             //int status,int cnt,int device,String str_status,string tmpture, string volt
             WriteDataToFile(tmpStatus, cnt, sendDevice, str_temp, tempture.ToString(), voltage_b.ToString());
@@ -205,6 +205,7 @@ namespace LaserUsbDemo
         private void HandleBtnTmpEnableSelection()
         {
             tv_status.Text = "  OK  ";
+            tv_process.Text = "";
             BtnTmp1.Enabled = true;
             BtnTmp2.Enabled = true;
             BtnTmp3.Enabled = true;
@@ -245,6 +246,24 @@ namespace LaserUsbDemo
             {
                 string file = dialog.FileName;
                 OpenExcelFile(file);
+
+                Excel.Range range = excelWorksheet.UsedRange;
+                int tmp = (int)(range.Cells[1, 2] as Excel.Range).Value2;
+                tb_tmp1.Text = tmp.ToString();
+                tmp_1_time = int.Parse(tb_tmp1.Text);
+                Console.WriteLine("tmp_1_time:" + tmp_1_time);
+
+                tmp = (int)(range.Cells[1, 4] as Excel.Range).Value2;
+                tb_tmp2.Text = tmp.ToString();    
+                tmp_2_time = int.Parse(tb_tmp1.Text);
+                Console.WriteLine("tmp_2_time:" + tmp_2_time);
+
+                tmp = (int)(range.Cells[1, 4] as Excel.Range).Value2;
+                tb_tmp3.Text = tmp.ToString();
+                tmp_3_time = int.Parse(tb_tmp1.Text);
+                Console.WriteLine("tmp_3_time:" + tmp_3_time);
+
+                Console.WriteLine();
             }
         }
 
@@ -317,7 +336,7 @@ namespace LaserUsbDemo
             BtnTmp3.Enabled = false;
             Excel.Range range = excelWorksheet.UsedRange;
 
-            int total_col = tmp_1_time + tmp_2_time + tmp_3_time + 1;
+            int total_col = tmp_1_time + tmp_2_time + tmp_3_time + 2;
             Console.WriteLine("total_col:" + total_col);
 
             TransData(0, range, total_col, serialPort1);
@@ -336,20 +355,86 @@ namespace LaserUsbDemo
             BtnTmp3.Enabled = true;
         }
 
+        private void AvgData(int device_idx,int status,int times, Excel.Range range , double[] avg_tmp, double[] avg_vol)
+        {
+            int rol_idx = 2;
+            int sum_rol = 2;
+            int temp_col = 2 + device_idx * 3;
+            int vb_col = 3 + device_idx * 3;
+
+            if (status == 1)
+            {
+                rol_idx = 2;
+                sum_rol = tmp_1_time + 2;
+            }
+            else if (status == 2)
+            {
+                rol_idx = tmp_1_time + 2;
+                sum_rol = tmp_1_time + tmp_2_time + 2;
+            }
+            else
+            {
+                rol_idx = tmp_1_time + tmp_2_time + 2;
+                sum_rol = tmp_1_time + tmp_2_time + tmp_3_time + 2;
+            }
+                
+
+            int sum_tmp = 0;
+            int sum_vol = 0;
+            for (int i = rol_idx+1; i <= sum_rol; i++)
+            {
+                sum_tmp += (int)(range.Cells[i, temp_col] as Excel.Range).Value2;
+                sum_vol += (int)(range.Cells[i, vb_col] as Excel.Range).Value2;
+            }
+
+
+            Console.WriteLine("sum_tmp:" + sum_tmp + ",times:" + times);
+            Console.WriteLine("sum_vol:" + sum_vol + ",times:" + times);
+            avg_tmp[0] = (double) sum_tmp / times;
+            avg_vol[0] = (double) sum_vol / times;
+        }
+
         private void TransData(int device_idx,Excel.Range range, int times, SerialPort serialPort)
         {
             if (!isDeviceDetect[device_idx])
                 return;
 
+            sendCleanDataBuf(serialPort);
+
+            double[] tmp_avg = new double[1];
+            double[] vol_avg = new double[1];
+
+            AvgData(device_idx, 1,tmp_1_time, range, tmp_avg, vol_avg);
+            Console.WriteLine("Avg tmp1:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
+            sendTemp(serialPort, tmp_avg[0]);
+            sendVoltage(serialPort, vol_avg[0]);
+            SendSetData(serialPort);
+
+            AvgData(device_idx, 2,tmp_2_time, range, tmp_avg, vol_avg);
+            Console.WriteLine("Avg tmp2:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
+            sendTemp(serialPort, tmp_avg[0]);
+            sendVoltage(serialPort, vol_avg[0]);
+            SendSetData(serialPort);
+
+            AvgData(device_idx, 3,tmp_3_time, range, tmp_avg, vol_avg);
+            Console.WriteLine("Avg tmp3:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
+            sendTemp(serialPort, tmp_avg[0]);
+            sendVoltage(serialPort, vol_avg[0]);
+            SendSetData(serialPort);
+
+
+            sendRunCalculate(serialPort);
+
+            tv_status.Text = "Finished";
+#if notUse
             byte[] data = new byte[6];
             int str_temp;
             int str_volt;
 
-            sendCleanDataBuf(serialPort);
-            for (int i = 2; i <= times; i++)
+            for (int i = 3; i <= times; i++)
             {
-                str_temp = (int)(range.Cells[i, 2] as Excel.Range).Value2;
-                str_volt = (int)(range.Cells[i, 3] as Excel.Range).Value2;
+                str_temp = (int)(range.Cells[i, temp_col] as Excel.Range).Value2;
+                str_volt = (int)(range.Cells[i, vb_col] as Excel.Range).Value2;
                 byte[] temp = BitConverter.GetBytes(str_temp);
                 byte[] vol = BitConverter.GetBytes(str_volt);
 
@@ -365,6 +450,7 @@ namespace LaserUsbDemo
                 sendData(serialPort, data);
             }
             sendRunCalculate(serialPort);
+#endif
         }
 
         private int tmp_1_time = 0;
@@ -455,6 +541,49 @@ namespace LaserUsbDemo
         private void enableBtnTmp()
         {
             this.BeginInvoke(new InvokeDelegate(HandleBtnTmpEnableSelection));
+        }
+
+        private void SendSetData(SerialPort serialPort)
+        {
+            serialPort.Write("X");
+        }
+
+        private void sendVoltage(SerialPort serialPort,double vol)
+        {
+            int cnt = 0;
+            String vol_str = vol.ToString("F10");
+            char[] tmp = vol_str.ToCharArray();
+            char[] data = new char[30];
+            
+            data[cnt++] = 'B';
+            for (int i = 0; i < tmp.Length; i++)
+            {
+                data[cnt++] = tmp[i];
+            }
+
+            data[cnt] = '\n';
+
+            Console.WriteLine("len:" + tmp.Length + ",cnt:" + cnt);
+          //  serialPort.Write(data, 0, data.Length);
+        }
+
+        private void sendTemp(SerialPort serialPort, double temp)
+        {
+            int cnt = 0;
+            String vol_str = temp.ToString("F10");
+            char[] tmp = vol_str.ToCharArray();
+            char[] data = new char[30];
+
+            data[cnt++] = 'T';
+            for (int i = 0; i < tmp.Length; i++)
+            {
+                data[cnt++] = tmp[i];
+            }
+
+            data[cnt] = '\n';
+
+            Console.WriteLine("len:" + tmp.Length + ",cnt:" + cnt);
+            //  serialPort.Write(data, 0, data.Length);
         }
 
         private void sendRunCalculate(SerialPort serialPort)
@@ -652,43 +781,50 @@ namespace LaserUsbDemo
                 excelWorkbook = excelApp.Workbooks.Add();
                 excelWorksheet = (Excel.Worksheet)excelWorkbook.Sheets.Add();
 
-                excelWorksheet.Cells[1, 1] = "Device 1";             
-                excelWorksheet.Cells[1, 2] = "Temp";
-                excelWorksheet.Cells[1, 3] = "Vb";
+                excelWorksheet.Cells[1, 1] = "Temp 1 Times:";
+                excelWorksheet.Cells[1, 2] = tmp_1_time.ToString();
+                excelWorksheet.Cells[1, 3] = "Temp 2 Times:";
+                excelWorksheet.Cells[1, 4] = tmp_2_time.ToString();
+                excelWorksheet.Cells[1, 5] = "Temp 3 Times:";
+                excelWorksheet.Cells[1, 6] = tmp_3_time.ToString();
 
-                excelWorksheet.Cells[1, 4] = "Device 2";                
-                excelWorksheet.Cells[1, 5] = "Temp";
-                excelWorksheet.Cells[1, 6] = "Vb";
+                excelWorksheet.Cells[2, 1] = "COM" + tb_device1.Text;             
+                excelWorksheet.Cells[2, 2] = "Temp";
+                excelWorksheet.Cells[2, 3] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 4] = "COM" + tb_device2.Text;
+                excelWorksheet.Cells[2, 5] = "Temp";
+                excelWorksheet.Cells[2, 6] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 7] = "COM" + tb_device3.Text;
+                excelWorksheet.Cells[2, 8] = "Temp";
+                excelWorksheet.Cells[2, 9] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 10] = "COM" + tb_device4.Text;
+                excelWorksheet.Cells[2, 11] = "Temp";
+                excelWorksheet.Cells[2, 12] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 13] = "COM" + tb_device5.Text;
+                excelWorksheet.Cells[2, 14] = "Temp";
+                excelWorksheet.Cells[2, 15] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 16] = "COM" + tb_device6.Text;  
+                excelWorksheet.Cells[2, 17] = "Temp";
+                excelWorksheet.Cells[2, 18] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 19] = "COM" + tb_device7.Text;
+                excelWorksheet.Cells[2, 20] = "Temp";
+                excelWorksheet.Cells[2, 21] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 22] = "COM" + tb_device8.Text;
+                excelWorksheet.Cells[2, 23] = "Temp";
+                excelWorksheet.Cells[2, 24] = "Vb";
+                                     
+                excelWorksheet.Cells[2, 25] = "COM" + tb_device9.Text;
+                excelWorksheet.Cells[2, 26] = "Temp";
+                excelWorksheet.Cells[2, 27] = "Vb";
 
-                excelWorksheet.Cells[1, 7] = "Device 3";               
-                excelWorksheet.Cells[1, 8] = "Temp";
-                excelWorksheet.Cells[1, 9] = "Vb";
-
-                excelWorksheet.Cells[1, 10] = "Device 4";              
-                excelWorksheet.Cells[1, 11] = "Temp";
-                excelWorksheet.Cells[1, 12] = "Vb";
-
-                excelWorksheet.Cells[1, 13] = "Device 5";   
-                excelWorksheet.Cells[1, 14] = "Temp";
-                excelWorksheet.Cells[1, 15] = "Vb";
-
-                excelWorksheet.Cells[1, 16] = "Device 6";
-                excelWorksheet.Cells[1, 17] = "Temp";
-                excelWorksheet.Cells[1, 18] = "Vb";
-
-                excelWorksheet.Cells[1, 19] = "Device 7";
-                excelWorksheet.Cells[1, 20] = "Temp";
-                excelWorksheet.Cells[1, 21] = "Vb";
-
-                excelWorksheet.Cells[1, 22] = "Device 8";
-                excelWorksheet.Cells[1, 23] = "Temp";
-                excelWorksheet.Cells[1, 24] = "Vb";
-
-                excelWorksheet.Cells[1, 25] = "Device 9";
-                excelWorksheet.Cells[1, 26] = "Temp";
-                excelWorksheet.Cells[1, 27] = "Vb";
-
-                excelWorksheet.Cells[1, 28] = "Device 10";
+                excelWorksheet.Cells[1, 28] = "COM" + tb_device10.Text;
                 excelWorksheet.Cells[1, 29] = "Temp";
                 excelWorksheet.Cells[1, 30] = "Vb";
  
@@ -699,13 +835,13 @@ namespace LaserUsbDemo
         public void WriteDataToFile(int status,int cnt,int device,String str_status,string tmpture, string volt)
         {
             
-            Int32 col = 1;
+            Int32 col = 2;
             if (status == 1)
-                col = 1 + cnt;
+                col = 2 + cnt;
             else if (status == 2)
-                col = 1 + tmp_1_time + cnt;
+                col = 2 + tmp_1_time + cnt;
             else if (status == 3)
-                col = 1 + tmp_1_time + tmp_2_time + cnt;
+                col = 2 + tmp_1_time + tmp_2_time + cnt;
 
 //            Console.WriteLine("col:" + col + ",status:" + status + ",cnt:" + cnt);
             if (excelWorksheet != null)

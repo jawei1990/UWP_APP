@@ -20,8 +20,8 @@ namespace LaserUsbDemo
     {
 
         private bool[] isDeviceDetect = new bool[10];
-
         List<ComPort> SerialPort = new List<ComPort>();
+
         struct ComPort
         {
             public string name;
@@ -142,7 +142,7 @@ namespace LaserUsbDemo
             }
         }
 
-        private bool OpenSerialPort(SerialPort serialPort,string portName)
+        private bool OpenSerialPort(SerialPort serialPort,string portName,int idx)
         {
             try
             {
@@ -154,7 +154,7 @@ namespace LaserUsbDemo
                 serialPort.RtsEnable = true;
                 serialPort.PortName = portName;
                 serialPort.Open(); 
-                Console.WriteLine("------- OpenSerialPort -----");
+                Console.WriteLine("------- OpenSerialPort -----" );
                 return true;
             }
             catch (Exception exp)
@@ -163,32 +163,39 @@ namespace LaserUsbDemo
             }
         }
 
+
         private int tempture;
         private int voltage_b;
         private String str_msg;
         private int[] tmp = new int [20];
         private int[] vb = new int [20];
-        private void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
+        private void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e) 
         { 
             SerialPort sp = (SerialPort)sender;
             byte[] rx_data = new byte[30];
             int len = sp.Read(rx_data, 0, 30);
 
-            if (len == 4)
+            if (len == 4 && tmpStatus != 4)
             {
                 tempture = (int)(rx_data[1] << 8 | rx_data[0]);
                 voltage_b = (int)(rx_data[3] << 8 | rx_data[2]);
 
-                str_msg = "tmp:" + tempture + "," + "Vb:" + voltage_b + " [" + sendDevice + "->" + tmpStatus + "-" + cnt + "]";
+                str_msg = sp.PortName + "--> tmp:" + tempture + "," + "Vb:" + voltage_b + " [" + sendDevice + "->" + tmpStatus + "-" + cnt + "]";
                 Console.WriteLine(str_msg);
-                this.BeginInvoke(new InvokeDelegate(HandleSaveMsg)); 
+                this.BeginInvoke(new InvokeDelegate(HandleSaveMsg));
+                status_device_cnt();
             }
-            else 
+            else
             {
-                String data = System.Text.Encoding.ASCII.GetString(rx_data, 0, len);
+                String data = sp.PortName + "--->" + System.Text.Encoding.ASCII.GetString(rx_data, 0, len);
                 Console.WriteLine("" + data);
+
+                if (data.Contains("EOK") || data.Contains("EERR"))
+                {
+                    sendDevice++;
+                    deal_trans_process();
+                }
             }
-            status_device_cnt();
         }
 
         private delegate void InvokeDelegate();
@@ -222,7 +229,7 @@ namespace LaserUsbDemo
             if (!String.IsNullOrEmpty(device.Text))
             {
                 String COM = "COM" + device.Text;
-                isDeviceDetect[device_idx] = OpenSerialPort(serialPort, COM);
+                isDeviceDetect[device_idx] = OpenSerialPort(serialPort, COM, device_idx);
                 Console.WriteLine("Device " + isDeviceDetect[device_idx] +":" + (isDeviceDetect[device_idx] ? "YES" : "NO"));
             }
         }
@@ -282,7 +289,7 @@ namespace LaserUsbDemo
                 checkComPortNull(tb_device7, 6, serialPort7);
                 checkComPortNull(tb_device8, 7, serialPort8);
                 checkComPortNull(tb_device9, 8, serialPort9);
-                checkComPortNull(tb_device10,9, serialPort10);
+                checkComPortNull(tb_device10, 9,serialPort10);
 
                 if (!isDeviceDetect[0])
                 {
@@ -291,10 +298,12 @@ namespace LaserUsbDemo
                 else
                 {
                     device_status = false;
-
+                    tmpStatus = 0;
                     CreateExcelFilePath();   
                     btnConnected.Text = "斷線";
                     Console.WriteLine("建excel");
+
+                    GetVerProc();
 
                     BtnTmp1.Enabled = true;
                     BtnTmp2.Enabled = true;
@@ -305,7 +314,7 @@ namespace LaserUsbDemo
             else
             {
                 device_status = true;
-
+                tmpStatus = 0;
                 disconnectDevice(0, serialPort1);
                 disconnectDevice(1, serialPort2);
                 disconnectDevice(2, serialPort3);
@@ -330,29 +339,89 @@ namespace LaserUsbDemo
 
         private void BtnCal_Click(object sender, EventArgs e)
         {
-
+            BtnCal.Enabled = false;
             BtnTmp1.Enabled = false;
             BtnTmp2.Enabled = false;
             BtnTmp3.Enabled = false;
-            Excel.Range range = excelWorksheet.UsedRange;
 
+            tmpStatus = 4;
+            sendDevice = 1;
+            deal_trans_process();
+
+        }
+
+        private void deal_trans_process()
+        {
+            Excel.Range range = excelWorksheet.UsedRange;
             int total_col = tmp_1_time + tmp_2_time + tmp_3_time + 2;
             Console.WriteLine("total_col:" + total_col);
 
-            TransData(0, range, total_col, serialPort1);
-            TransData(1, range, total_col, serialPort2);
-            TransData(2, range, total_col, serialPort3);
-            TransData(3, range, total_col, serialPort4);
-            TransData(4, range, total_col, serialPort5);
-            TransData(5, range, total_col, serialPort6);
-            TransData(6, range, total_col, serialPort7);
-            TransData(7, range, total_col, serialPort8);
-            TransData(8, range, total_col, serialPort9);
-            TransData(9, range, total_col, serialPort10);
+            switch (sendDevice)
+            {
+                case 1:
+                    TransData(0, range, total_col, serialPort1);
+                    break;
+                case 2:
+                    TransData(1, range, total_col, serialPort2);
+                    break;
+                case 3:
+                    TransData(2, range, total_col, serialPort3);
+                    break;
+                case 4:
+                    TransData(3, range, total_col, serialPort4);
+                    break;
+                case 5:
+                    TransData(4, range, total_col, serialPort5);
+                    break;
+                case 6:
+                    TransData(5, range, total_col, serialPort6);
+                    break;
+                case 7:
+                    TransData(6, range, total_col, serialPort7);
+                    break;
+                case 8:
+                    TransData(7, range, total_col, serialPort8);
+                    break;
+                case 9:
+                    TransData(8, range, total_col, serialPort9);
+                    break;
+                case 10:
+                    TransData(9, range, total_col, serialPort10);
+                    break;
+            }
+        }
 
-            BtnTmp1.Enabled = true;
-            BtnTmp2.Enabled = true;
-            BtnTmp3.Enabled = true;
+        private void GetVerProc()
+        {
+            if(isDeviceDetect[0])
+            sendGetVer(serialPort1);
+
+            if (isDeviceDetect[1])
+                sendGetVer(serialPort2);
+
+            if (isDeviceDetect[2])
+                sendGetVer(serialPort3);
+
+            if (isDeviceDetect[3])
+                sendGetVer(serialPort4);
+
+            if (isDeviceDetect[4])
+                sendGetVer(serialPort5);
+
+            if (isDeviceDetect[5])
+                sendGetVer(serialPort6);
+
+            if (isDeviceDetect[6])
+                sendGetVer(serialPort7);
+
+            if (isDeviceDetect[7])
+                sendGetVer(serialPort8);
+
+            if (isDeviceDetect[8])
+                sendGetVer(serialPort9);
+
+            if (isDeviceDetect[9])
+                sendGetVer(serialPort10);
         }
 
         private void AvgData(int device_idx,int status,int times, Excel.Range range , double[] avg_tmp, double[] avg_vol)
@@ -397,35 +466,37 @@ namespace LaserUsbDemo
         private void TransData(int device_idx,Excel.Range range, int times, SerialPort serialPort)
         {
             if (!isDeviceDetect[device_idx])
-                return;
+            {
+                enableBtnTmp();
+            }
+            else 
+            {
+                sendCleanDataBuf(serialPort);
 
-            sendCleanDataBuf(serialPort);
+                double[] tmp_avg = new double[1];
+                double[] vol_avg = new double[1];
 
-            double[] tmp_avg = new double[1];
-            double[] vol_avg = new double[1];
+                AvgData(device_idx, 1, tmp_1_time, range, tmp_avg, vol_avg);
+                Console.WriteLine("Avg tmp1:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
+                sendTemp(serialPort, tmp_avg[0]);
+                sendVoltage(serialPort, vol_avg[0]);
+                SendSetData(serialPort);
 
-            AvgData(device_idx, 1,tmp_1_time, range, tmp_avg, vol_avg);
-            Console.WriteLine("Avg tmp1:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
-            sendTemp(serialPort, tmp_avg[0]);
-            sendVoltage(serialPort, vol_avg[0]);
-            SendSetData(serialPort);
+                AvgData(device_idx, 2, tmp_2_time, range, tmp_avg, vol_avg);
+                Console.WriteLine("Avg tmp2:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
+                sendTemp(serialPort, tmp_avg[0]);
+                sendVoltage(serialPort, vol_avg[0]);
+                SendSetData(serialPort);
 
-            AvgData(device_idx, 2,tmp_2_time, range, tmp_avg, vol_avg);
-            Console.WriteLine("Avg tmp2:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
-            sendTemp(serialPort, tmp_avg[0]);
-            sendVoltage(serialPort, vol_avg[0]);
-            SendSetData(serialPort);
-
-            AvgData(device_idx, 3,tmp_3_time, range, tmp_avg, vol_avg);
-            Console.WriteLine("Avg tmp3:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
-            sendTemp(serialPort, tmp_avg[0]);
-            sendVoltage(serialPort, vol_avg[0]);
-            SendSetData(serialPort);
+                AvgData(device_idx, 3, tmp_3_time, range, tmp_avg, vol_avg);
+                Console.WriteLine("Avg tmp3:" + tmp_avg[0].ToString("F10") + ",vol:" + vol_avg[0].ToString("F10"));
+                sendTemp(serialPort, tmp_avg[0]);
+                sendVoltage(serialPort, vol_avg[0]);
+                SendSetData(serialPort);
 
 
-            sendRunCalculate(serialPort);
-
-            tv_status.Text = "Finished";
+                sendRunCalculate(serialPort);
+            }  
 #if notUse
             byte[] data = new byte[6];
             int str_temp;
@@ -550,45 +621,50 @@ namespace LaserUsbDemo
 
         private void sendVoltage(SerialPort serialPort,double vol)
         {
-            int cnt = 0;
+            int idx = 0;
             String vol_str = vol.ToString("F10");
             char[] tmp = vol_str.ToCharArray();
             char[] data = new char[30];
             
-            data[cnt++] = 'B';
+            data[idx++] = 'B';
             for (int i = 0; i < tmp.Length; i++)
             {
-                data[cnt++] = tmp[i];
+                data[idx++] = tmp[i];
             }
 
-            data[cnt] = '\n';
+            data[idx] = 'V';
 
             Console.WriteLine("len:" + tmp.Length + ",cnt:" + cnt);
-          //  serialPort.Write(data, 0, data.Length);
+            serialPort.Write(data, 0, data.Length);
         }
 
         private void sendTemp(SerialPort serialPort, double temp)
         {
-            int cnt = 0;
+            int idx = 0;
             String vol_str = temp.ToString("F10");
             char[] tmp = vol_str.ToCharArray();
             char[] data = new char[30];
 
-            data[cnt++] = 'T';
+            data[idx++] = 'T';
             for (int i = 0; i < tmp.Length; i++)
             {
-                data[cnt++] = tmp[i];
+                data[idx++] = tmp[i];
             }
 
-            data[cnt] = '\n';
+            data[idx] = 'T';
 
             Console.WriteLine("len:" + tmp.Length + ",cnt:" + cnt);
-            //  serialPort.Write(data, 0, data.Length);
+            serialPort.Write(data, 0, data.Length);
         }
 
         private void sendRunCalculate(SerialPort serialPort)
         {
             serialPort.Write("R");
+        }
+
+        private void sendGetVer(SerialPort serialPort)
+        {
+            serialPort.Write("V");
         }
 
         private void sendCleanDataBuf(SerialPort serialPort)
@@ -622,7 +698,8 @@ namespace LaserUsbDemo
                 times_params = tmp_3_time;
 
             Thread.Sleep(500);
-   
+
+//            Console.WriteLine("sendDevice:" + sendDevice);
             switch (sendDevice)
             {
                 case 1:
@@ -678,26 +755,19 @@ namespace LaserUsbDemo
             }
         }
 
-        private void deal_send_vb_Temp_process(int times_params, SerialPort serialPort)
+        private void deal_send_vb_Temp_process(int times_params, SerialPort tmp)
         {
+ //           Console.WriteLine("---->" + tmp.PortName + ",cnt:" + cnt + ",times_params:" + times_params);
             if (cnt <= times_params)
-                sendGetVb_Tmp(serialPort);
+                sendGetVb_Tmp(tmp);
             else
             {
-                if (sendDevice <= 10)
+                sendDevice++;
+ //               Console.WriteLine("xxxx::" + sendDevice + "," + isDeviceDetect[sendDevice-1]);
+                if (sendDevice <= 10 && isDeviceDetect[sendDevice-1])
                 {
-                    if (isDeviceDetect[sendDevice])
-                    {
-                        sendDevice++;
-                        sendGetVb_Tmp(serialPort);
-                        cnt = 1;
-                    }
-                    else
-                    {
-                        sendDevice = 0;
-                        cnt = 1;
-                        enableBtnTmp();
-                    }
+                    cnt = 1;
+                    status_device_cnt();
                 }
                 else
                 {

@@ -177,8 +177,8 @@ namespace LaserUsbDemo
 
             if (len == 4 && tmpStatus != 4)
             {
-                tempture = (int)(rx_data[1] << 8 | rx_data[0]);
-                voltage_b = (int)(rx_data[3] << 8 | rx_data[2]);
+                tempture = (int)(rx_data[3] << 8 | rx_data[2]);
+                voltage_b = (int)(rx_data[1] << 8 | rx_data[0]);
 
                 str_msg = sp.PortName + "--> tmp:" + tempture + "," + "Vb:" + voltage_b + " [" + sendDevice + "->" + tmpStatus + "-" + cnt + "]";
                 Console.WriteLine(str_msg);

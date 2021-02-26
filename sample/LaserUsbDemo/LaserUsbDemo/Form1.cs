@@ -10,6 +10,9 @@ using System.Windows.Forms;
 using System.Management;
 using System.IO.Ports;
 using System.Text.RegularExpressions;
+using System.Threading;
+using Excel = Microsoft.Office.Interop.Excel;
+using System.IO;
 
 namespace LaserUsbDemo
 {
@@ -151,11 +154,77 @@ namespace LaserUsbDemo
             }
         }
 
+        string FILENAME_XLS;
+        Excel.Application excelApp;
+        Excel.Workbook excelWorkbook;
+        Excel.Worksheet excelWorksheet;
+        public void CreateExcelFilePath()
+        {
+            Console.WriteLine("建Excel");
+            string DIRNAME = Application.StartupPath + @"\Log\";
+            if (!Directory.Exists(DIRNAME))
+                Directory.CreateDirectory(DIRNAME);
+
+            FILENAME_XLS = DIRNAME + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".xls";
+            excelApp = new Excel.Application();
+            WriteExcelTitle();
+        }
+
+        private void CloseExcelFile()
+        {
+            Console.WriteLine("關閉 Excel");
+            if (excelWorkbook != null)
+            {
+                excelWorkbook.Close();
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(excelWorksheet);
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(excelWorkbook);
+            }
+
+            if (excelApp != null)
+            {
+                excelApp.Quit();
+                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(excelApp);
+
+            }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+            excelWorkbook = null;
+            excelApp = null;
+        }
+
+        public void WriteDataToFile(int cnt, String dist, string tmpture, string volt)
+        {
+            int col = cnt + 1;
+            excelWorksheet.Cells[col, 1] = cnt.ToString();
+            excelWorksheet.Cells[col, 2] = dist;
+            excelWorksheet.Cells[col, 3] = tmpture;
+            excelWorksheet.Cells[col, 4] = volt;
+            excelApp.ActiveWorkbook.Save();
+        }
+
+        public void WriteExcelTitle()
+        {
+            if (excelApp != null)
+            {
+                excelWorkbook = excelApp.Workbooks.Add();
+                excelWorksheet = (Excel.Worksheet)excelWorkbook.Sheets.Add();
+
+                excelWorksheet.Cells[1, 1] = "次數:";
+                excelWorksheet.Cells[1, 2] = "Dist";
+                excelWorksheet.Cells[1, 3] = "Temp:";
+                excelWorksheet.Cells[1, 4] = "Vb:";
+
+                excelApp.ActiveWorkbook.SaveAs(FILENAME_XLS, Excel.XlFileFormat.xlWorkbookNormal);
+            }
+        }
+
         private void BtnDeviceStatus_Click(object sender, EventArgs e)
         {
             if (isDeviceConnected)
             {
                 CloseSerialPort();
+                CloseExcelFile();
             }
             else
             {
@@ -167,6 +236,7 @@ namespace LaserUsbDemo
                 else 
                 {
                     OpenSerialPort(device_port);
+                    CreateExcelFilePath();
                 }                
             }  
         }
@@ -197,6 +267,7 @@ namespace LaserUsbDemo
             return str;
         }
 
+        private const int CNT_MAX = 1000;
         private void Uart_Rx_Handle(object sender, SerialDataReceivedEventArgs e)
         {
 
@@ -217,30 +288,33 @@ namespace LaserUsbDemo
 
             //Console.WriteLine("Data Received:" + indata);
             
-                        SerialPort sp = (SerialPort)sender;
-                        string indata = sp.ReadExisting();
-                        Console.WriteLine("Data Received:" + indata);
+            SerialPort sp = (SerialPort)sender;
+            string indata = sp.ReadExisting();
+            Console.WriteLine("Data Received:" + indata);
 
-                        if (indata.Contains("DIST"))
-                        {
-                            switch (btnStatus)
-                            {
-                                case 1:
-                                    {
-                                        DecodeData(indata);
-                                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
-                                        btnStatus = 3;
-                                    }
-                                    break;
-                                case 2:
-                                    {
-                                        DecodeData(indata);
-                                        this.BeginInvoke(new InvokeDelegate(HandleSelection));
-                                    }
-                                    break;
-                            }
-                        }
-            
+            if (indata.Contains("DIST"))
+            {
+                String dist = "";
+                String vol = "";
+                String temp = "";
+                String pattern = ":";
+                String[] elements = Regex.Split(indata, pattern);
+                Console.WriteLine("len:" + elements.Length);
+                dist = elements[1];
+                Console.WriteLine("dist:" + dist);
+                temp = elements[2];
+                Console.WriteLine("temp:" + temp);
+                vol = elements[3];
+                Console.WriteLine("vol:" + vol);
+                WriteDataToFile(cnt,dist,temp,vol);
+            }
+
+            if (cnt <= CNT_MAX)
+            {
+                Console.WriteLine("cnt:" + cnt);
+                cnt++;
+                testFunc();
+            }
         }
 
         private delegate void InvokeDelegate();
@@ -292,6 +366,7 @@ namespace LaserUsbDemo
         byte[] off = new byte[] { 0x44 };
         private void BtnOff_Click(object sender, EventArgs e)
         {
+            cnt = 1000000;
             btnStatus = 2;
             serialPort1.Write(off, 0, 1);
         }
@@ -300,8 +375,23 @@ namespace LaserUsbDemo
     byte[] on = new byte[] { 0x45 };
         private void BtnOn_Click(object sender, EventArgs e)
         {
+            cnt = 1;
             btnStatus = 3;
-            serialPort1.Write(on, 0, 1);
+            //     serialPort1.Write(on, 0, 1);
+            serialPort1.WriteLine("E");
+            Thread.Sleep(1000);
+            serialPort1.WriteLine("S");
+        }
+
+        int cnt;
+        void testFunc()
+        {
+            if (cnt <= CNT_MAX)
+            {
+                serialPort1.WriteLine("E");
+                Thread.Sleep(1000);
+                serialPort1.WriteLine("S");
+            }       
         }
 
 

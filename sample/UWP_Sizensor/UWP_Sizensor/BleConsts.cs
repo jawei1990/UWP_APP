@@ -1,13 +1,11 @@
 ﻿using System;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
 
-namespace TestBle
+namespace UWP_Sizensor
 {
-
-    // Define the characteristics and other properties of our custom service.
-    public class BleConsts
-    {
-        #region BLE Connection Status
+    class BleConsts
+    { 
+       #region BLE Connection Status
         public const int STATE_DISCONNECTED = 0;
         public const int STATE_CONNECTING = 1;
         public const int STATE_CONNECTED = 2;

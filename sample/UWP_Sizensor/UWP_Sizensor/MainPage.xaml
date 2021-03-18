@@ -1,0 +1,75 @@
+﻿<Page
+    x:Class="UWP_Sizensor.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TestCamera"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Height="600" Width="800" >
+
+    <Page.Resources>
+        <Style TargetType="Button">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Page.Resources>
+
+    <RelativePanel x:Name="ScreenView">
+        <Image x:Name="BleLink" Width="20" Height="20" Margin="5,5,0,0"
+           Source="Assets/png_bt_red.png"
+           RelativePanel.AlignTopWithPanel="True" 
+           RelativePanel.AlignLeftWithPanel="True"/>
+
+        <TextBlock x:Name="disStr" Width="650" Height="100" FontSize="15dp" 
+                 RelativePanel.AlignLeftWithPanel="True"
+                 RelativePanel.Below="BleLink"/>
+
+        <CaptureElement Name="PreviewControl" Width="650" Height="600" Stretch="Uniform"
+                        RelativePanel.AlignTopWithPanel="True" />
+        <Image Name="PreviewFrameImage" Width="650" Height="600" Stretch="Uniform"
+                        RelativePanel.AlignLeftWithPanel="True" />
+        <RelativePanel x:Name="BtnView" Width="120" Height="600" 
+                       RelativePanel.AlignRightWithPanel="True">
+
+
+            <Button x:Name="BtnMore"  Margin="10,10,10,10"
+                          RelativePanel.AlignTopWithPanel="True">
+                <Image x:Name="BtnMoreBG" Source="/Assets/png_more_un.png" />
+            </Button>
+            <Button x:Name="BtnFlash" Width="100" Height="100" Margin="10,10,10,10"
+                          RelativePanel.Below="BtnMore">
+                <Image x:Name="BtnFlashBG" Source="/Assets/png_lightoff_un.png"/>
+            </Button>
+            <Button x:Name="BtnCapture" Width="100" Height="100" Margin="10,10,10,10"
+                          RelativePanel.Below="BtnFlash"
+                          Click="BtnCaptureOnClick" >
+                <Image x:Name="BtnCaptureBG" Source="/Assets/png_camera_un.png"/>
+            </Button>
+            <Button x:Name="BtnFile" Width="100" Height="100" Margin="10,10,10,10"
+                          RelativePanel.Below="BtnCapture"
+                          Click="BtnFileOnClick">
+                <Image x:Name="BtnFileBG" Source="/Assets/png_folder_un.png"/>
+            </Button>
+            <Button x:Name="BtnPrice" Width="100" Height="100" Margin="10,10,10,10"
+                           RelativePanel.Below="BtnFile">
+                <Image x:Name="BtnPriceBG" Source="/Assets/png_fee_un.png"/>
+            </Button>
+        </RelativePanel>
+
+        <RelativePanel x:Name="FileView" Width="220" Height="100" Visibility="Collapsed"
+                       RelativePanel.LeftOf="BtnView" 
+                       RelativePanel.AlignBottomWithPanel="True" Margin="0,0,20,140">
+            <Button x:Name="BtnSave" Width="100" Height="100" Margin="10,0,0,0" Click="BtnSaveOnClick"
+                           RelativePanel.AlignRightWithPanel="True">
+                <Image x:Name="BtnSaveBG" Source="/Assets/png_folder_save_un.png"/>
+            </Button>
+            <Button x:Name="BtnOpen" Width="100" Height="100" Click="BtnOpenOnClick"
+                          RelativePanel.LeftOf="BtnSave">
+                <Image x:Name="BtnOpenBG" Source="/Assets/png_folder_open_un.png"/>
+            </Button>
+        </RelativePanel>
+        </RelativePanel>
+
+
+</Page>
